@@ -3,5 +3,7 @@
 .RData
 .Ruserdata
 data/
-results/
-document/
+DABOM_results/
+STADEM_results/
+DABOM_estimates/
+Document/
