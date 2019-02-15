@@ -15,7 +15,7 @@ library(STADEM)
 # set species and spawn year
 species = c('Chinook', 'Steelhead')  # either Chinook or Steelhead
 year = 2010:2017        # tagging operations started at Lower Granite with spawn year 2009.
-
+year = 2018
 ## Trap database
 # file path to .csv version of LGR trap database - dnload 01/08/2018 (morning)
 trap_filepath = 'data/tblLGDMasterCombineExportJodyW.csv'
@@ -34,21 +34,12 @@ for(i in 1:length(species)){
     }
     
 
-stadem_list = compileGRAdata(yr = yr,   # spawn year
-                             spp = spp,
+stadem_list = compileGRAdata(spp = spp,
+                             start_date = paste0(yr,'0301'),
+                             end_date = paste0(yr,'0817'),
                              strata_beg = 'Mon',
-                             trap_path = trap_filepath
+                             trap_path = trap_filepath,
                              incl_jacks = incl_jacks)   # incl_jacks needs to be true for Chinook, b/c window counts from DART are from two seperate columns
-                             
-# 
-# tmp_no_path = compileGRAdata(yr = yr,   # spawn year
-#                              spp = spp,
-#                              strata_beg = 'Mon')
-# 
-# tmp_with_path = compileGRAdata(yr = yr,   # spawn year
-#                              spp = spp,
-#                              strata_beg = 'Mon',
-#                              trap_path = 'data/tblLGDMasterCombineExportJodyW.csv')
 
 # creates JAGs data list.
 jags_data_list = prepJAGS(stadem_list[['weeklyData']])
@@ -69,8 +60,8 @@ win_model = c('pois', 'neg_bin', 'neg_bin2', 'quasi_pois', 'log_space')[2]
 # run model - runSTADEMmodel sets the params to save inside the fnc, and it
 # does not same all the params available in the model!
 stadem_mod = runSTADEMmodel(file_name = model_file_nm,
-                            mcmc_chainLength = 40000,
-                            mcmc_burn = 10000,
+                            mcmc_chainLength = 5000, #40000,
+                            mcmc_burn = 1000, #10000,
                             mcmc_thin = 30,
                             mcmc_chains = 4,
                             jags_data = jags_data_list,

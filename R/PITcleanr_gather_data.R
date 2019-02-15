@@ -348,116 +348,11 @@ site_df <- read_csv(sitedf_filepath, col_types = cols(.default = 'c'))
 # could be maintained externally
 #------------------------------------------------------------------------------
 
-# # get site code of initial marking site
-# root_site = sites_df %>%
-#   filter(nchar(path) == min(nchar(path))) %>%
-#   select(SiteID) %>%
-#   as.matrix() %>%
-#   as.character()
-# 
-# # create data.frame of each node, matching up with siteID and path to that siteID
-# node_df = sites_df %>%
-#   rename(EndSite = SiteID) %>%
-#   mutate(Step0 = root_site) %>%
-#   tidyr::gather(stepOrder, site, matches('Step')) %>%
-#   mutate(stepOrder = stringr::str_replace(stepOrder, '^Step', ''),
-#          stepOrder = as.integer(stepOrder)) %>%
-#   arrange(EndSite, stepOrder) %>%
-#   filter(site != '',
-#          site %in% c(root_site, as.character(sites_df$SiteID))) %>%
-#   group_by(EndSite) %>%
-#   mutate(stepOrder = 1:n()) %>%
-#   ungroup() %>%
-#  left_join(configuration %>%
-#               filter(!EndDate < lubridate::ymd(startDate) | is.na(EndDate)) %>%
-#               select(SiteID, Node, SiteType, matches('RKM')) %>%
-#               distinct() %>%
-#               bind_rows(anti_join(configuration %>%
-#                                     group_by(SiteID) %>%
-#                                     filter(StartDate == max(StartDate, na.rm = T)) %>%
-#                                     ungroup() %>%
-#                                     select(SiteID, Node, SiteType, matches('RKM')) %>%
-#                                     distinct(),
-#                                   .,
-#                                   by = c('SiteID', 'Node'))) %>%
-#               # mutate(site = stringr::str_replace(Node, 'A0$', ''),
-#               #        site = stringr::str_replace(site, 'B0$', '')) %>%
-#               # group_by(Node, site) %>%
-#               # filter(RKMTotal == min(RKMTotal)) %>%
-#               # ungroup(),
-#              distinct(),
-#           by = c('site' = 'SiteID')) %>%
-# arrange(EndSite, stepOrder, desc(Node)) %>%
-#   group_by(EndSite) %>%
-#   mutate(nodeOrder = 1:n()) %>%
-#   group_by(Node) %>%
-#   filter(nodeOrder == min(nodeOrder)) %>%
-#   ungroup() %>%
-#   group_by(EndSite) %>%
-#   mutate(nodeOrder = 1:n()) %>%
-#   ungroup() %>%
-#   select(EndSite, NodeSite = site, SiteID = site, SiteType, Node, nodeOrder, matches('RKM'), path)
-# 
-# parent_child = node_df %>%
-#   group_by(EndSite) %>%
-#   mutate(prevNode = lag(Node)) %>%
-#   ungroup() %>%
-#   filter(!is.na(prevNode)) %>%
-#   select(ParentNode = prevNode,
-#          ChildNode = Node,
-#          SiteType, matches('RKM'),
-#          nodeOrder) %>%
-#   bind_rows(tibble(ParentNode = root_site,
-#                    ChildNode = root_site,
-#                    nodeOrder = 1) %>%
-#               left_join(configuration %>%
-#                           filter(SiteID == root_site) %>%
-#                           select(ChildNode = SiteID,
-#                                  SiteType, matches('RKM')) %>%
-#                           distinct(),
-#                         by = 'ChildNode')) %>%
-#   distinct() %>%
-#   # arrange mosty by RKM
-#   mutate(initParent = ifelse(ChildNode == root_site, 'A',
-#                              ifelse(ParentNode == root_site, 'B', 'C'))) %>%
-#   arrange(initParent, RKM) %>%
-#   select(-initParent) %>%
-#   group_by(ChildNode) %>%
-#   filter(RKMTotal == max(RKMTotal)) %>%
-#   slice(1) %>%
-#   ungroup()
-
-
-
-
 parent_child = createParentChildDf(site_df,
                                    my_config,
                                    startDate = ifelse(spp == 'Chinook',
                                                       paste0(yr, '0301'),
                                                       paste0(yr-1, '0701')))
-
-#------------------------------------------------------------------------------
-# add one site in Kenney Creek, if its been dropped
-# needs to be done to keep the correct indexing for the JAGs model
-# early years Kenney Creek only had one array and all carcasses were 
-# grouped into KENA0 fictitious site.
-#
-# THIS IS AN IMPORTANT STEP TO MAKE SURE THE MODEL RUNS CORRECTLY
-#------------------------------------------------------------------------------
-
-# if(sum(grepl('KENA0', parent_child$ChildNode)) == 0) {
-#   lineNum = which(parent_child$ChildNode == 'KENB0')
-#   
-#   parent_child = parent_child %>%
-#     slice(1:lineNum) %>%
-#     bind_rows(parent_child %>%
-#                 slice(lineNum) %>%
-#                 mutate(ParentNode = 'KENB0',
-#                        ChildNode = 'KENA0')) %>%
-#     bind_rows(parent_child %>%
-#                 slice((lineNum + 1):n()))
-# }
-
 
 write.csv(parent_child, 
      file = paste0('./data/ConfigurationFiles/parent_child_',timestp,'.csv'),
@@ -573,28 +468,6 @@ proc_ch <- proc_list$ProcCapHist %>%
   as_tibble()
 
 #------------------------------------------------------------------------------
-# Get a quick summary of detections
-#------------------------------------------------------------------------------
-# number of tags observed at each node
-n_tags <- proc_ch %>%
-  group_by(Group, Node) %>%
-  distinct(TagID, .keep_all = TRUE) %>%
-  summarise(n = n()) %>%
-  arrange(Group, n) 
-# nodes with zero tags in proc_ch file
-zero_tags <- proc_list$NodeOrder %>%
-  anti_join(proc_ch, by = 'Node') %>%
-  arrange(Group)
-# nodes with zero tags that have observations in proc_list$ValidObs
-miss_obs <- inner_join(zero_tags, proc_list$ValidObs, by = 'Node') %>%
-  group_by(Group, SiteID, Node) %>%
-  summarise(n = n_distinct(TagID))
-
-valid_paths <- getValidPaths(parent_child, 'GRA')
-node_order <- createNodeOrder(valid_paths, my_config, site_df, step_num = 3)
-eff <- nodeEfficiency(proc_ch, node_order, direction = 'upstream')
-
-#------------------------------------------------------------------------------
 # Save Data
 #------------------------------------------------------------------------------
 write.csv(proc_ch, 
@@ -612,55 +485,66 @@ save(proc_list,
 # Read in processed observation data after final biologist call is made.
 # Then summarize for final spawn location and IDFG genetic work.
 #------------------------------------------------------------------------------
-library(DABOM)
+
+library(tidyverse)
 library(lubridate)
+library(PITcleanr)
+
+spp <- 'Steelhead'
+yr <- 2018
+timestp <- '20190125' # for file path
 
 #------------------------------------------------------------------------------
 # Load configuration, parent_child and processed datasets from PITcleanr 
 #------------------------------------------------------------------------------
-load(paste0('data/PreppedData/LGR_', spp, '_', yr,'_20190125.rda'))
+load(paste0('data/PreppedData/LGR_', spp, '_', yr,'_', timestp,'.rda'))
 
 
-# proc_ch = read_csv(paste0('./data/CleanedData/ProcCapHist_EDITTED_', spp, '_', yr,'_',timestp,'.csv'))# %>%
-#   # mutate(TrapDate = mdy_hms(TrapDate),
-#   #      ObsDate = mdy_hms(ObsDate),
-#   #      lastObsDate = mdy_hms(lastObsDate)) %>%
-#   #      AutoProcStatus = ifelse(AutoProcStatus == 1, TRUE, FALSE),
-#   #      UserProcStatus = ifelse(UserProcStatus == 1, TRUE, FALSE),
-#   #      ModelObs = ifelse(ModelObs == 1, TRUE, FALSE)) %>%
-#   # filter(ModelObs)
-# 
-# call_diff <- proc_ch %>%
-#   mutate(call_diff = case_when(
-#     AutoProcStatus != UserProcStatus ~ 1,
-#     TRUE ~ 0)) %>%
-#   group_by(TagID) %>%
-#   mutate(error = ifelse(sum(call_diff)>0,'error','ok'))%>%
-#   filter(error == 'error')
-# 
-# n_distinct(call_diff$TagID) # missed 25 (includes AB_nodes and downstream
-# # mainstem xxxx_Other.)
+proc_ch = read_delim(paste0('./data/CleanedData/ProcCapHist_EDITTED_', spp, '_', yr,'_',timestp,'.txt'),
+                     delim = '\t') %>%
+   mutate(TrapDate = mdy_hms(TrapDate),
+        ObsDate = mdy_hms(ObsDate),
+        lastObsDate = mdy_hms(lastObsDate)) %>%
+   filter(ModelObs)
+
+call_diff <- proc_ch %>%
+  mutate(call_diff = case_when(
+    AutoProcStatus != UserProcStatus ~ 1,
+    TRUE ~ 0)) %>%
+  group_by(TagID) %>%
+  mutate(error = ifelse(sum(call_diff)>0,'error','ok'))%>%
+  filter(error == 'error')
+
+n_distinct(call_diff$TagID) # missed 25 (includes AB_nodes and downstream
+# mainstem xxxx_Other.)
 
 #------------------------------------------------------------------------------
-# May be needed if setting call to automatic algorithm output
+# Get a quick summary of detections
 #------------------------------------------------------------------------------
-# set 'Biologist Call' to the auto call for now and our example!
-proc_ch <- read_csv(paste0('./data/PreppedData/ProcCapHist_NULL_', spp, '_', yr,'_',timestp,'.csv'))
+# number of tags observed at each node
+n_tags <- proc_ch %>%
+  group_by(Group, Node) %>%
+  distinct(TagID, .keep_all = TRUE) %>%
+  summarise(n = n()) %>%
+  arrange(Group, n) 
+# nodes with zero tags in proc_ch file
+zero_tags <- proc_list$NodeOrder %>%
+  anti_join(proc_ch, by = 'Node') %>%
+  arrange(Group)
+# nodes with zero tags that have observations in proc_list$ValidObs
+miss_obs <- inner_join(zero_tags, proc_list$ValidObs, by = 'Node') %>%
+  group_by(Group, SiteID, Node)# %>%
+#  summarise(n = n_distinct(TagID))
 
-proc_ch <- proc_ch %>%
-   mutate(UserComment = ifelse(UserProcStatus != AutoProcStatus, 'Changed UserProcStatus to equal AutoProcStatus', ''),
-     UserProcStatus = AutoProcStatus)
-# 
-# write.csv(proc_ch, 
-#      file = paste0('./data/CleanedData/ProcCapHist_EDITED_', spp, '_', yr,'_',timestp,'.csv'),
-#      row.names = FALSE)
+valid_paths <- getValidPaths(proc_list$parent_child, 'GRA')
+node_order <- createNodeOrder(valid_paths, proc_list$my_config, site_df, step_num = 3)
+eff <- nodeEfficiency(proc_ch, node_order, direction = 'upstream')
+
 
 #------------------------------------------------------------------------------
 # Biological Summaries for IDFG and Life History
-#
 # assigns spawn location, last observation date and filters tag obs for only those
 # tags used in the DABOM model.
-#
 #------------------------------------------------------------------------------
 
 lifehistory_summ = summariseTagData(capHist_proc = proc_ch,
