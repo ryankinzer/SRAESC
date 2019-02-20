@@ -14,7 +14,10 @@ library(STADEM)
 
 # set species and spawn year
 species = c('Chinook', 'Steelhead')  # either Chinook or Steelhead
-year = 2010:2017        # tagging operations started at Lower Granite with spawn year 2009.
+year = 2010:2018        # tagging operations started at Lower Granite with spawn year 2009.
+
+spp = 'Chinook'
+yr = 2018
 
 ## Trap database
 # file path to .csv version of LGR trap database - dnload 01/08/2018 (morning)
@@ -37,7 +40,7 @@ for(i in 1:length(species)){
 stadem_list = compileGRAdata(yr = yr,   # spawn year
                              spp = spp,
                              strata_beg = 'Mon',
-                             trap_path = trap_filepath
+                             trap_path = trap_filepath,
                              incl_jacks = incl_jacks)   # incl_jacks needs to be true for Chinook, b/c window counts from DART are from two seperate columns
                              
 # 
