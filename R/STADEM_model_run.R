@@ -14,11 +14,15 @@ library(STADEM)
 
 # set species and spawn year
 species = c('Chinook', 'Steelhead')  # either Chinook or Steelhead
-year = 2010:2017        # tagging operations started at Lower Granite with spawn year 2009.
-year = 2018
+year = 2018        # tagging operations started at Lower Granite with spawn year 2009.
+
+#spp = 'Steelhead'
+#yr = 2018
+
 ## Trap database
-# file path to .csv version of LGR trap database - dnload 01/08/2018 (morning)
+# file path to .csv version of LGR trap database - dnload 02/20/2018 (afternoon)
 trap_filepath = 'data/tblLGDMasterCombineExportJodyW.csv'
+#trap_filepath = 'data/LGTrappingExportJodyW.accdb'
 
 # Loop through species and years
 for(i in 1:length(species)){
@@ -60,8 +64,8 @@ win_model = c('pois', 'neg_bin', 'neg_bin2', 'quasi_pois', 'log_space')[2]
 # run model - runSTADEMmodel sets the params to save inside the fnc, and it
 # does not same all the params available in the model!
 stadem_mod = runSTADEMmodel(file_name = model_file_nm,
-                            mcmc_chainLength = 5000, #40000,
-                            mcmc_burn = 1000, #10000,
+                            mcmc_chainLength = 40000,
+                            mcmc_burn = 10000,
                             mcmc_thin = 30,
                             mcmc_chains = 4,
                             jags_data = jags_data_list,

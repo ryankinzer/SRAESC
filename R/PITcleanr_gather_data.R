@@ -366,23 +366,35 @@ parent_child <- read_csv(parentchild_filepath)
 # # Plot nodes
 #------------------------------------------------------------------------------
 nodes <- parent_child %>%
-  gather('loc_type','SiteID', ParentNode, ChildNode) %>%
-  distinct(SiteID) %>%
+  gather('loc_type','Node', ParentNode, ChildNode) %>%
+  distinct(Node) %>%
   rowid_to_column('id')
 
+nodes <- left_join(nodes, 
+                    my_config %>%
+                      select(SiteID, Node, SiteType) %>%
+                      distinct(), by = c('Node'))
+
 edges <- parent_child %>%
-  left_join(nodes, by = c('ParentNode' = 'SiteID')) %>%
+  left_join(nodes, by = c('ParentNode' = 'Node')) %>%
   rename(from = id) %>%
-  left_join(nodes, by = c('ChildNode' = 'SiteID')) %>%
+  left_join(nodes, by = c('ChildNode' = 'Node')) %>%
   rename(to = id)
 
 routes_tidy <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
 
 ggraph(routes_tidy, layout = 'tree', , circular = TRUE) +   #, layout = 'tree', circular = TRUE
-  geom_edge_link() +
-  geom_node_point() +
+  geom_edge_link(aes(colour = SiteType)) +
+  geom_node_point(aes(colour = SiteType)) +
   geom_node_text(aes(label = SiteID)) + #, repel = TRUE
+  facet_wrap(~SiteType) +
   theme_graph()
+
+
+
+tmp <- obsNetwork(parent_child)
+
+
 
 #------------------------------------------------------------------------------
 ## Get valid tags from Lower Granite trapping database and relavent fields,
