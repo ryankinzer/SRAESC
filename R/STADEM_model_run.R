@@ -16,9 +16,6 @@ library(STADEM)
 species = c('Chinook', 'Steelhead')  # either Chinook or Steelhead
 year = 2018        # tagging operations started at Lower Granite with spawn year 2009.
 
-#spp = 'Steelhead'
-#yr = 2018
-
 ## Trap database
 # file path to .csv version of LGR trap database - dnload 02/20/2018 (afternoon)
 trap_filepath = 'data/tblLGDMasterCombineExportJodyW.csv'
