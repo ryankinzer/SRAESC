@@ -34,10 +34,18 @@ for(i in 1:length(species)){
       incl_jacks = FALSE
     }
     
+    if(spp == 'Chinook'){
+      start_date = paste0(yr,'0301')
+      end_date = paste0(yr,'0817')
+    } else {
+      start_date = paste0(yr-1,'0701')
+      end_date = paste0(yr,'0630')
+    }
+    
 
 stadem_list = compileGRAdata(spp = spp,
-                             start_date = paste0(yr,'0301'),
-                             end_date = paste0(yr,'0817'),
+                             start_date = start_date, paste0(yr,'0301'),
+                             end_date = end_date, #paste0(yr,'0817'),
                              strata_beg = 'Mon',
                              trap_path = trap_filepath,
                              incl_jacks = incl_jacks)   # incl_jacks needs to be true for Chinook, b/c window counts from DART are from two seperate columns
