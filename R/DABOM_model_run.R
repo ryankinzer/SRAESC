@@ -23,14 +23,15 @@ timestp <- gsub('[^0-9]','', Sys.Date())
 #------------------------------------------------------------------------------
 # Load configuration, parent_child and processed datasets from PITcleanr 
 #------------------------------------------------------------------------------
-load(paste0('data/PreppedData/LGR_', spp, '_', yr,'_20180208.rda'))
-
+#load(paste0('data/PreppedData/LGR_', spp, '_', yr,'_20190125.rda'))
+load(paste0('data/PreppedData/LGR_Chinook_2017_20180208.rda'))
 #------------------------------------------------------------------------------
 # Load biologist corrected capture history file with the final TRUE/FALSE calls
 # in the UserProcStatus column, and then filter out all FALSE observations.
 #------------------------------------------------------------------------------
-proc_ch <- read_csv(paste0('data/CleanedData/ProcCapHist_EDITTED_', spp, '_', yr,'_20180208.csv')) %>%
-    mutate(TrapDate = mdy_hms(TrapDate),
+#proc_ch <- read_delim(paste0('data/CleanedData/ProcCapHist_EDITTED_', spp, '_', yr,'_20190125.txt'), header = TRUE, sep = '\t') %>%
+proc_ch <- read_delim('data/CleanedData/ProcCapHist_EDITTED_Chinook_2018_20190219.txt', delim = '\t') %>%
+    mutate(TrapDate = mdy(TrapDate),
          ObsDate = mdy_hms(ObsDate),
          lastObsDate = mdy_hms(lastObsDate),
          AutoProcStatus = ifelse(AutoProcStatus == 1, TRUE, FALSE),
@@ -57,39 +58,6 @@ if(spp == 'Chinook') {
  }
 
 #------------------------------------------------------------------------------
-# Biological Summaries for John Powell and Life History
-#
-# assigns spawn location, last observation date and filters tag obs for only those
-# tags used in the DABOM model.
-#
-#------------------------------------------------------------------------------
-
-lifehistory_summ = summariseTagData(capHist_proc = proc_ch,
-                                    trap_data = proc_list$ValidTrapData) %>%
-  mutate(equal_robots = ifelse(PtagisEventLastSpawnSite == AssignSpawnSite, TRUE,FALSE),
-         equal_robots = ifelse(AssignSpawnNode == 'GRA', TRUE, equal_robots),
-         equal_robots = ifelse(is.na(equal_robots), FALSE, equal_robots))
-
-#------------------------------------------------------------------------------
-# what is the agreement with IDFG
-#------------------------------------------------------------------------------
-
-# proportion of final spawn sites that disagree
-length(which(!lifehistory_summ$equal_robots))/length(lifehistory_summ$equal_robots)
-
-# number of final spawn sites that disagree
-length(which(!lifehistory_summ$equal_robots))
-
-
-# save file for John Powell
-write.csv(lifehistory_summ, 
-          file = paste0('./data/LifeHistoryData/lifehistory_summ_', spp, '_', yr,'_',timestp,'.csv'))
-
-not_equal <- lifehistory_summ %>%
-  filter(!equal_robots) %>%
-  select(TagID:TagPath, contains('Ptagis'))
-
-#------------------------------------------------------------------------------
 # Create default LGR branch occupancy JAGs model code.
 #------------------------------------------------------------------------------
 
@@ -113,6 +81,7 @@ writeDABOM_LGD(file_name = basic_modNm,
 # filepath for specific JAGS model code for species and year
 mod_path = paste0('ModelFiles/LGR_DABOM_', spp, '_', yr, '.txt')
 
+#writes species and year specific jags code
 fixNoFishNodes(basic_modNm,
                mod_path,
                proc_ch,
@@ -131,6 +100,10 @@ proc_ch <- proc_ch %>%
 dabom_list = createDABOMcapHist(proc_ch,
                                 proc_list$NodeOrder,
                                 split_matrices = T)
+
+tmp = createDABOMcapHist(proc_ch,
+                                proc_list$NodeOrder,
+                                split_matrices = F)
 
 #------------------------------------------------------------------------------
 # Used to Debug
@@ -188,11 +161,10 @@ dabom_mod <- jags.basic(data = jags_data,
 
 
 
-#--------------------------------------------------------------------------------
+`#--------------------------------------------------------------------------------
 # Save the results
 #--------------------------------------------------------------------------------
 proc_list[["proc_ch"]] <- proc_ch
-proc_list[["life_hist"]] <- lifehistory_summ
 
 save(dabom_mod, dabom_list, proc_list,
      file = paste0('DABOM_results/LGR_DABOM_Bio_', spp, '_', yr,'_',timestp,'.rda'))
