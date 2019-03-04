@@ -15,7 +15,7 @@ library(DABOM)
 #------------------------------------------------------------------------------
 # Set species and year of interest
 #------------------------------------------------------------------------------
-spp <- 'Chinook'
+spp <- 'Steelhead'
 yr <- 2018 
 
 timestp <- gsub('[^0-9]','', Sys.Date())
@@ -24,13 +24,13 @@ timestp <- gsub('[^0-9]','', Sys.Date())
 # Load configuration, parent_child and processed datasets from PITcleanr 
 #------------------------------------------------------------------------------
 #load(paste0('data/PreppedData/LGR_', spp, '_', yr,'_20190125.rda'))
-load(paste0('data/PreppedData/LGR_Chinook_2017_20180208.rda'))
+load(paste0('data/PreppedData/LGR_Steelhead_2017_20180208.rda'))
 #------------------------------------------------------------------------------
 # Load biologist corrected capture history file with the final TRUE/FALSE calls
 # in the UserProcStatus column, and then filter out all FALSE observations.
 #------------------------------------------------------------------------------
 #proc_ch <- read_delim(paste0('data/CleanedData/ProcCapHist_EDITTED_', spp, '_', yr,'_20190125.txt'), header = TRUE, sep = '\t') %>%
-proc_ch <- read_delim('data/CleanedData/ProcCapHist_EDITTED_Chinook_2018_20190219.txt', delim = '\t') %>%
+proc_ch <- read_delim('data/CleanedData/ProcCapHist_EDITTED_Steelhead_2018_20190125_RO_2-29-19.txt', delim = '\t') %>%
     mutate(TrapDate = mdy(TrapDate),
          ObsDate = mdy_hms(ObsDate),
          lastObsDate = mdy_hms(lastObsDate),
@@ -154,8 +154,8 @@ dabom_mod <- jags.basic(data = jags_data,
                         parameters.to.save = jags_params,
                         model.file = mod_path,
                         n.chains = 4, # 4,
-                        n.iter = 5000, # 5000,
-                        n.burnin = 2500, # 2500,
+                        n.iter = 1500, # 5000,
+                        n.burnin = 500, # 2500,
                         n.thin = 10, # 10,
                         DIC = T)
 
