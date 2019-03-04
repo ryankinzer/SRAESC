@@ -353,47 +353,141 @@ parent_child = createParentChildDf(site_df,
                                    startDate = ifelse(spp == 'Chinook',
                                                       paste0(yr, '0301'),
                                                       paste0(yr-1, '0701')))
+tmp <- parent_child %>%
+  rename(parent = ParentNode, child = ChildNode)
+
+node_df <- obsNetwork(tmp)
+
 
 write.csv(parent_child, 
      file = paste0('./data/ConfigurationFiles/parent_child_',timestp,'.csv'),
      row.names = FALSE)
 
 # Load parent_child table if maintained externally
-parentchild_filepath <- './data/ConfigurationFiles/parent_child_20180207.csv'
+parentchild_filepath <- './data/ConfigurationFiles/parent_child_20190125.csv'
 parent_child <- read_csv(parentchild_filepath)
 
 #------------------------------------------------------------------------------
-# # Plot nodes
+# # Plot Sites
 #------------------------------------------------------------------------------
-nodes <- parent_child %>%
-  gather('loc_type','Node', ParentNode, ChildNode) %>%
+nodePC <- parent_child %>%
+  rename(parent = ParentNode, child = ChildNode) %>%
+  left_join(my_config %>%
+              select(SiteID, Node) %>%
+              distinct(),
+            by = c('child' = 'Node')) %>%
+  left_join(site_df %>%
+              select(SiteID, Area = Step2, Branch = Step3),
+            by = 'SiteID') %>%
+  select(-SiteID) %>%
+  distinct() %>%
+  arrange(nodeOrder)
+
+#site_meta <- read_csv('./data/ConfigurationFiles/DABOM_site_metadata.csv')
+#source('./R/siteParentChild.R')
+#sitePC <- siteParentChild(site_df)
+
+nodes <- nodePC %>%
+  gather('loc_type','Node', parent, child) %>%
   distinct(Node) %>%
   rowid_to_column('id')
 
-nodes <- left_join(nodes, 
-                    my_config %>%
-                      select(SiteID, Node, SiteType) %>%
-                      distinct(), by = c('Node'))
-
-edges <- parent_child %>%
-  left_join(nodes, by = c('ParentNode' = 'Node')) %>%
+edges <- nodePC %>%
+  left_join(nodes, by = c('parent' = 'Node')) %>%
   rename(from = id) %>%
-  left_join(nodes, by = c('ChildNode' = 'Node')) %>%
+  left_join(nodes, by = c('child' = 'Node')) %>%
   rename(to = id)
+
+nodes <- left_join(nodes,
+                   nodePC %>%
+                     select(-parent),
+                   by = c('Node' = 'child'))
 
 routes_tidy <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
 
-ggraph(routes_tidy, layout = 'tree', , circular = TRUE) +   #, layout = 'tree', circular = TRUE
-  geom_edge_link(aes(colour = SiteType)) +
-  geom_node_point(aes(colour = SiteType)) +
-  geom_node_text(aes(label = SiteID)) + #, repel = TRUE
-  facet_wrap(~SiteType) +
-  theme_graph()
+routes_tidy %>% #, layout = 'tree', circular = TRUE) +   #, layout = 'tree', circular = TRUE
+  ggraph(layout = 'tree') +
+  geom_edge_link() +
+  geom_node_point(aes(color = Area,
+                      shape = SiteType),
+                  size = 8) +
+  geom_node_label(aes(label = Node),
+                  # repel = T,
+                  size = 2,
+                  label.padding = unit(0.1, 'lines'),
+                  label.size = 0.1) +
+  scale_color_brewer(palette = 'Set1') +
+  theme_graph(base_family = 'Times') +
+  theme(legend.position = 'bottom')
 
+# Split the network
 
+grp <- unique(nodes$Area)[-1]
+grpList = vector('list', length(grp))
 
-tmp <- obsNetwork(parent_child)
+for(i in 1:length(grp)){
+  tmp_grp <- c('NA', grp[i])
+  
+  tmp_nodePC <- filter(nodePC, Area %in% tmp_grp)
+  
+  tmp_nodes <- tmp_nodePC %>%
+    gather('loc_type','Node', parent, child) %>%
+    distinct(Node) %>%
+    rowid_to_column('id')
+  
+  tmp_edges <- tmp_nodePC %>%
+    left_join(tmp_nodes, by = c('parent' = 'Node')) %>%
+    rename(from = id) %>%
+    left_join(tmp_nodes, by = c('child' = 'Node')) %>%
+    rename(to = id)
+  
+  tmp_nodes <- left_join(tmp_nodes,
+                     tmp_nodePC %>%
+                       select(-parent),
+                     by = c('Node' = 'child'))
+  
+  grpList[[i]] <- tbl_graph(nodes = tmp_nodes, edges = tmp_edges) %>%
+    mutate(Group = grp[i])
+}
 
+splitGr_p = bind_graphs(grpList[[1]],
+                        grpList[[2]],
+                        grpList[[3]],
+                        grpList[[4]],
+                        grpList[[5]],
+                        grpList[[6]]) %>%
+  ggraph(layout = 'nicely') +
+  geom_edge_link() +
+  geom_node_point(aes(color = Area,
+                      shape = SiteType),
+                  size = 8) +
+  geom_node_label(aes(label = Node),
+                  # repel = T,
+                  size = 2,
+                  label.padding = unit(0.1, 'lines'),
+                  label.size = 0.1) +
+  scale_color_brewer(palette = 'Set1') +
+  theme_graph(base_family = 'Times') +
+  facet_nodes(~ Group,
+              scales = 'free') +
+  theme(legend.position = 'bottom')
+
+splitGr_p
+
+grpList[[1]] %>%
+  ggraph(layout = 'tree') +
+  geom_edge_link() +
+  geom_node_point(aes(color = Area,
+                      shape = SiteType),
+                  size = 8) +
+  geom_node_label(aes(label = Node),
+                  # repel = T,
+                  size = 2,
+                  label.padding = unit(0.1, 'lines'),
+                  label.size = 0.1) +
+  scale_color_brewer(palette = 'Set1') +
+  theme_graph(base_family = 'Times') +
+  theme(legend.position = 'bottom')
 
 
 #------------------------------------------------------------------------------
@@ -488,6 +582,7 @@ write.csv(proc_ch,
 
 proc_list[["my_config"]] <- my_config
 proc_list[["parent_child"]] <- parent_child
+proc_list[["life_hist"]] <- lifehistory_summ
 
 # save entire list to feed into DABOM package
 save(proc_list,

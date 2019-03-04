@@ -13,7 +13,7 @@ library(DABOM)
 #------------------------------------------------------------------------------
 # set species and spawn year
 species <- c('Chinook', 'Steelhead')  # either Chinook or Steelhead
-year <- 2016:2017        # tagging operations started at Lower Granite with spawn year 2009.
+year <- 2016:2018        # tagging operations started at Lower Granite with spawn year 2009.
 
 dabom_files <- list.files('./DABOM_results/', pattern = '.rda') 
 stadem_files <- list.files('./STADEM_results/', pattern = '.rda') 
@@ -37,13 +37,13 @@ for(i in 1:length(species)){
 #------------------------------------------------------------------------------
 # Load the DABOM results
 spp_files <- dabom_files[str_detect(dabom_files, spp)]
-tmp_file <- spp_files[str_detect(spp_files, as.character(yr))]
+tmp_file <- spp_files[str_detect(spp_files, as.character(paste0("_",yr,"_")))]
 
 load(file = paste0('./DABOM_results/',tmp_file))
 
 # Load the STADEM results
 spp_files <- stadem_files[str_detect(stadem_files, spp)]
-tmp_file <- spp_files[str_detect(spp_files, as.character(yr))]
+tmp_file <- spp_files[str_detect(spp_files, as.character(paste0("_",yr)))]
 
 load(paste0('./STADEM_results/', tmp_file))
 
@@ -233,7 +233,7 @@ library(WriteXLS)
 #testPerl()
 
 WriteXLS(x = c('detect_summ', 'trib_summ', 'report_summ', 'life_hist', 'proc_ch'),
-         ExcelFileName = './DABOM_estimates/LGR_PIT_estimates_20180216.xlsx',
+         ExcelFileName = paste0('./DABOM_estimates/LGR_PIT_estimates_',timestp,'.xlsx'),
          SheetNames = c('Detection_Eff','Site_ests','Population_ests','Life_hist_data','Observation_data'))
 
 # write_csv(report_locs, path = './data/ConfigurationFiles/reporting_groups.csv')

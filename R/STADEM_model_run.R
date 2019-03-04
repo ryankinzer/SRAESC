@@ -44,7 +44,7 @@ for(i in 1:length(species)){
     
 
 stadem_list = compileGRAdata(spp = spp,
-                             start_date = start_date, paste0(yr,'0301'),
+                             start_date = start_date, #paste0(yr,'0301'),
                              end_date = end_date, #paste0(yr,'0817'),
                              strata_beg = 'Mon',
                              trap_path = trap_filepath,
