@@ -19,7 +19,7 @@ model{
   LTR_p ~ dbeta(1,1)
   MTR_p ~ dbeta(1,1)
   UTR_p ~ dbeta(1,1)
-  TUCH_p <- 1 # assume perfect detection
+  TUCH_p <- 0 # no detections / not in operation
 
   ALMOTC_p <- 0 # no detections / not in operation
   ALPOWC_p <- 0 # no detections / not in operation
@@ -60,8 +60,7 @@ model{
   CLC_p <- 0 # no detections / not in operation
   KOOS_p <- 0 # no detections / not in operation
 
-  LRL_p <- 1 # assume perfect detection
-
+  LRL_p <- 1 #dbeta(1,1)
   FISTRP_p <- 0 # no detections / not in operation
 
   SW1_p <- 1 # assume perfect detection
@@ -116,7 +115,7 @@ model{
   #--------------------------------
   # Salmon branch sites
   #--------------------------------
-  RAPH_p <- 1 # assume perfect detection
+  RAPH_p <- 0 # no detections / not in operation
 
   SFG_p ~ dbeta(1,1)
   ESSA0_p ~ dbeta(1,1)
@@ -178,7 +177,7 @@ model{
   YFKB0_p ~ dbeta(1,1)
   STL_p <- 1 # assume perfect detection
   SALEFT_p <- 0 # no detections / not in operation
-  PAHH_p <- 1 # assume perfect detection
+  PAHH_p <- 0 # no detections / not in operation
 
 
   ##################################################################
@@ -252,7 +251,7 @@ model{
   # priors for transition probabilities
   phi_mtr ~ dbeta(1,1)  # probability of moving past MTR
   phi_utr ~ dbeta(1,1)  # probability of moving past UTR
-  phi_tuch ~ dbeta(1,1)  # probability of moving past TUCH
+  phi_tuch <- 0 # no upstream detections
 
   for ( i in 1:n.fish ) {
     #----------------------------
@@ -287,9 +286,9 @@ model{
   # only have to worry about observation piece
   for ( i in 1:n.fish ) {
 
-    Penawawa[i] ~ dbern(PENAWC_p * catexp[i,2])
-    Almota[i] ~ dbern(ALMOTC_p * catexp[i,3])
-    Alpowa[i] ~ dbern(ALPOWC_p * catexp[i,4])
+    Penawawa[i,1] ~ dbern(PENAWC_p * catexp[i,2])
+    Almota[i,1] ~ dbern(ALMOTC_p * catexp[i,3])
+    Alpowa[i,1] ~ dbern(ALPOWC_p * catexp[i,4])
 
   }
 
@@ -381,7 +380,7 @@ model{
   # only have to worry about observation piece
   for ( i in 1:n.fish ) {
 
-    TenMileCreek[i] ~ dbern(TENMC2_p * catexp[i,6])
+    TenMileCreek[i,1] ~ dbern(TENMC2_p * catexp[i,6])
 
   }
 
@@ -521,7 +520,7 @@ model{
   #   Now we deal with Joseph Creek
   ####################################################
   # getting past JOSEPC
-  phi_josepc ~ dbeta(1,1)
+  phi_josepc <- 0 # no upstream detections
 
   for (i in 1:n.fish) {
   #------------------------------------
@@ -705,7 +704,7 @@ model{
     SFClearwater[i,2] ~ dbern( SC2B0_p * catexp[i,13] )
 
     # other arrays (above SC2)
-    SFClearwater[i,3] ~ dbern( SC2A0_p * catexp[i,13] )
+    #SFClearwater[i,3] ~ dbern( SC2A0_p * catexp[i,13] )
 
   }
 
@@ -749,7 +748,7 @@ model{
   for (i in 1:n.fish) {
 
     # first array (SW1)
-    Selway[i] ~ dbern( SW1_p * catexp[i,16] )
+    Selway[i,1] ~ dbern( SW1_p * catexp[i,16] )
 
   }
 
@@ -761,7 +760,7 @@ model{
   for (i in 1:n.fish) {
 
     # first array (LOOKGC)
-    LookingGlass[i] ~ dbern( LOOKGC_p * catexp[i,17] )
+    LookingGlass[i,1] ~ dbern( LOOKGC_p * catexp[i,17] )
 
   }
 
@@ -853,7 +852,7 @@ model{
   for (i in 1:n.fish) {
 
     # first array (RAPH)
-    RapidRiver[i] ~ dbern( RAPH_p * catexp[i,20] )
+    RapidRiver[i,1] ~ dbern( RAPH_p * catexp[i,20] )
 
   }
 
@@ -1028,7 +1027,7 @@ model{
   pMat_UpLemhi[2,(n.pops.Lemhi[2]+1)] <- 0 #set the "not there" bin to prob = 0
 
   # movement up Big Timber Creek
-  phi_btm ~ dbeta(1,1)
+  phi_btm <- 0 # no upstream detections
   phi_btu <- 0 # no upstream detections
 
 

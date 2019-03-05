@@ -15,7 +15,7 @@ library(DABOM)
 #------------------------------------------------------------------------------
 # Set species and year of interest
 #------------------------------------------------------------------------------
-spp <- 'Steelhead'
+spp <- 'Chinook'
 yr <- 2018 
 
 timestp <- gsub('[^0-9]','', Sys.Date())
@@ -24,13 +24,16 @@ timestp <- gsub('[^0-9]','', Sys.Date())
 # Load configuration, parent_child and processed datasets from PITcleanr 
 #------------------------------------------------------------------------------
 #load(paste0('data/PreppedData/LGR_', spp, '_', yr,'_20190125.rda'))
-load(paste0('data/PreppedData/LGR_Steelhead_2017_20180208.rda'))
+load(paste0('data/PreppedData/LGR_Chinook_2018_20190304.rda'))
+
+#proc_ch <- proc_list$ProcCapHist %>%
+#  mutate(UserProcStatus = AutoProcStatus)
 #------------------------------------------------------------------------------
 # Load biologist corrected capture history file with the final TRUE/FALSE calls
 # in the UserProcStatus column, and then filter out all FALSE observations.
 #------------------------------------------------------------------------------
 #proc_ch <- read_delim(paste0('data/CleanedData/ProcCapHist_EDITTED_', spp, '_', yr,'_20190125.txt'), header = TRUE, sep = '\t') %>%
-proc_ch <- read_delim('data/CleanedData/ProcCapHist_EDITTED_Steelhead_2018_20190125_RO_2-29-19.txt', delim = '\t') %>%
+proc_ch <- read_delim('data/CleanedData/ProcCapHist_eddited_Chinook_2018_20190125_RO_3-2-19.txt', delim = '\t') %>%
     mutate(TrapDate = mdy(TrapDate),
          ObsDate = mdy_hms(ObsDate),
          lastObsDate = mdy_hms(lastObsDate),
@@ -90,8 +93,8 @@ fixNoFishNodes(basic_modNm,
 #------------------------------------------------------------------------------
 # Switch Potlatch detections - move POTREF to HLMB0 with det = 1.0
 #------------------------------------------------------------------------------
-proc_ch <- proc_ch %>%
-  mutate(Node = ifelse(Node == 'POTREF', 'HLMB0', Node))
+# proc_ch <- proc_ch %>%
+#   mutate(Node = ifelse(Node == 'POTREF', 'HLMB0', Node))
 
 #------------------------------------------------------------------------------
 # Create capture history matrices for each main branch to be used in 
@@ -100,17 +103,12 @@ proc_ch <- proc_ch %>%
 dabom_list = createDABOMcapHist(proc_ch,
                                 proc_list$NodeOrder,
                                 split_matrices = T)
-
-tmp = createDABOMcapHist(proc_ch,
-                                proc_list$NodeOrder,
-                                split_matrices = F)
-
 #------------------------------------------------------------------------------
 # Used to Debug
 #------------------------------------------------------------------------------
-# full_dabom = createDABOMcapHist(proc_ch,
-#                                proc_list$NodeOrder,
-#                                split_matrices = F)
+full_dabom = createDABOMcapHist(proc_ch,
+                               proc_list$NodeOrder,
+                               split_matrices = F)
 #------------------------------------------------------------------------------
 
 # Creates a function to spit out initial values for MCMC chains
@@ -119,12 +117,17 @@ init_fnc = setInitialValues_LGD(dabom_list)
 #Create all the input data for the JAGS model
 jags_data = createJAGSinputs_LGD(dabom_list)
 
+
+# CHANGE TIME VARY DATE FOR SPECIES!!!!!!
+
 if(time_varying) {
   jags_data = c(jags_data,
                 addTimeVaryData(proc_ch,
                                 node_order = proc_list$NodeOrder,
                                 spawn_yr = yr,
-                                spp = spp))
+                                spp = spp,
+                                start_date = paste0(yr,'0301'), 
+                                end_date = paste0(yr,'0817')))
 }
 
 #------------------------------------------------------------------------------
@@ -153,10 +156,10 @@ dabom_mod <- jags.basic(data = jags_data,
                         inits = init_fnc,
                         parameters.to.save = jags_params,
                         model.file = mod_path,
-                        n.chains = 4, # 4,
-                        n.iter = 1500, # 5000,
-                        n.burnin = 500, # 2500,
-                        n.thin = 10, # 10,
+                        n.chains = 4,
+                        n.iter = 5000,
+                        n.burnin = 2500,
+                        n.thin = 10,
                         DIC = T)
 
 
