@@ -153,7 +153,7 @@ save(detect_summ, wk_trans_summ, trib_summ, report_summ,
 
 #------------------------------------------------------------------------------
 # Load model run/estimates
-load('./DABOM_estimates/LGR_PIT_estimates_20180216.rda')
+load('./DABOM_estimates/LGR_PIT_estimates_20180314.rda')
 
 library(WriteXLS)
 #testPerl()
