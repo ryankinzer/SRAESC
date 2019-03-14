@@ -178,15 +178,30 @@ detach('package:jagsUI')
 # to another script but we can leave it here for now!!!
 #------------------------------------------------------------------------------
 
-load(file = paste0('DABOM_results/LGR_DABOM_', spp, '_', yr, '_20180207.rda'))
+load(file = paste0('DABOM_results/LGR_DABOM_Bio_', spp, '_', yr, '_20190304.rda'))
 ## Detection Probabilities
 
 #Directly from `DABOM`, we can extract estimates of the detection probability of the observation nodes. These are average probabiliities across the entire season of the run, and how these nodes match up to actual arrays and antennas is defined in the configuration file.
 
 detect_summ = summariseDetectProbs(dabom_mod = dabom_mod,
-                                   capHist_proc = proc_ch)
+                                   capHist_proc = proc_list$proc_ch)
 head(detect_summ)
 
+# Detections Probs From PITcleanr
+config_filepath <- './data/ConfigurationFiles/my_config_20190304.csv'
+my_config <- read_csv(config_filepath)
+
+sitedf_filepath <- './data/ConfigurationFiles/site_df_20190304.csv'
+site_df <- read_csv(sitedf_filepath, col_types = cols(.default = 'c'))
+
+parentchild_filepath <- './data/ConfigurationFiles/parent_child_20190304.csv'
+parent_child <- read_csv(parentchild_filepath)
+
+valid_paths <- getValidPaths(parent_child, 'GRA')
+node_order <- createNodeOrder(valid_paths, my_config, site_df, step_num = 3)
+eff <- nodeEfficiency(proc_list$proc_ch, node_order, direction = 'upstream')
+
+tmp <- left_join(detect_summ, eff, by = 'Node')
 # Estimate Escapement with **STADEM** and **DABOM**
 
 load(paste0('STADEM_results/LGR_STADEM_', spp, '_', yr, '.rda'))
