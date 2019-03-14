@@ -15,7 +15,7 @@ library(DABOM)
 #------------------------------------------------------------------------------
 # Set species and year of interest
 #------------------------------------------------------------------------------
-spp <- 'Chinook'
+spp <- 'Steelhead'
 yr <- 2018 
 
 timestp <- gsub('[^0-9]','', Sys.Date())
@@ -24,7 +24,7 @@ timestp <- gsub('[^0-9]','', Sys.Date())
 # Load configuration, parent_child and processed datasets from PITcleanr 
 #------------------------------------------------------------------------------
 #load(paste0('data/PreppedData/LGR_', spp, '_', yr,'_20190125.rda'))
-load(paste0('data/PreppedData/LGR_Chinook_2018_20190304.rda'))
+load(paste0('data/PreppedData/LGR_Steelhead_2018_20190304.rda'))
 
 #proc_ch <- proc_list$ProcCapHist %>%
 #  mutate(UserProcStatus = AutoProcStatus)
@@ -33,7 +33,7 @@ load(paste0('data/PreppedData/LGR_Chinook_2018_20190304.rda'))
 # in the UserProcStatus column, and then filter out all FALSE observations.
 #------------------------------------------------------------------------------
 #proc_ch <- read_delim(paste0('data/CleanedData/ProcCapHist_EDITTED_', spp, '_', yr,'_20190125.txt'), header = TRUE, sep = '\t') %>%
-proc_ch <- read_delim('data/CleanedData/ProcCapHist_eddited_Chinook_2018_20190125_RO_3-2-19.txt', delim = '\t') %>%
+proc_ch <- read_delim('data/CleanedData/ProcCapHist_EDITTED_Steelhead_2018_20190125_RO_2-29-19.txt', delim = '\t') %>%
     mutate(TrapDate = mdy(TrapDate),
          ObsDate = mdy_hms(ObsDate),
          lastObsDate = mdy_hms(lastObsDate),
@@ -93,8 +93,8 @@ fixNoFishNodes(basic_modNm,
 #------------------------------------------------------------------------------
 # Switch Potlatch detections - move POTREF to HLMB0 with det = 1.0
 #------------------------------------------------------------------------------
-# proc_ch <- proc_ch %>%
-#   mutate(Node = ifelse(Node == 'POTREF', 'HLMB0', Node))
+ proc_ch <- proc_ch %>%
+   mutate(Node = ifelse(Node == 'POTREF', 'HLMB0', Node))
 
 #------------------------------------------------------------------------------
 # Create capture history matrices for each main branch to be used in 
@@ -126,8 +126,8 @@ if(time_varying) {
                                 node_order = proc_list$NodeOrder,
                                 spawn_yr = yr,
                                 spp = spp,
-                                start_date = paste0(yr,'0301'), 
-                                end_date = paste0(yr,'0817')))
+                                start_date = paste0(yr-1,'0701'), 
+                                end_date = paste0(yr,'0630')))
 }
 
 #------------------------------------------------------------------------------
@@ -164,7 +164,7 @@ dabom_mod <- jags.basic(data = jags_data,
 
 
 
-`#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 # Save the results
 #--------------------------------------------------------------------------------
 proc_list[["proc_ch"]] <- proc_ch
@@ -178,10 +178,12 @@ detach('package:jagsUI')
 # to another script but we can leave it here for now!!!
 #------------------------------------------------------------------------------
 
-load(file = paste0('DABOM_results/LGR_DABOM_Bio_', spp, '_', yr, '_20190304.rda'))
-## Detection Probabilities
+load(file = paste0('DABOM_results/LGR_DABOM_Bio_', spp, '_', yr, '_20190310.rda'))
 
-#Directly from `DABOM`, we can extract estimates of the detection probability of the observation nodes. These are average probabiliities across the entire season of the run, and how these nodes match up to actual arrays and antennas is defined in the configuration file.
+# Detection Probabilities Directly from `DABOM`, we can extract estimates of
+# the detection probability of the observation nodes. These are average
+# probabiliities across the entire season of the run, and how these nodes match
+# up to actual arrays and antennas is defined in the configuration file.
 
 detect_summ = summariseDetectProbs(dabom_mod = dabom_mod,
                                    capHist_proc = proc_list$proc_ch)
@@ -199,9 +201,39 @@ parent_child <- read_csv(parentchild_filepath)
 
 valid_paths <- getValidPaths(parent_child, 'GRA')
 node_order <- createNodeOrder(valid_paths, my_config, site_df, step_num = 3)
-eff <- nodeEfficiency(proc_list$proc_ch, node_order, direction = 'upstream')
 
-tmp <- left_join(detect_summ, eff, by = 'Node')
+KSeff <- estNodeEff(proc_list$proc_ch, node_order, method = 'Chapman')
+pet <- estNodeEff(proc_list$proc_ch, node_order, method = 'Petersen')
+  
+eff_df <- left_join(detect_summ, KSeff, by = 'Node') %>%
+  left_join(pet %>%
+              select(Node, N_P = estTagsAtNode, p_P=detEff), by = 'Node') %>%
+  rename(p_C = detEff, N_C = estTagsAtNode)
+
+eff_df %>%
+  filter(Node != 'GRA') %>%
+  select(Node, n_tags, tagsResighted, tagsAboveNode, median, contains("p_")) %>%
+  gather(estimator, p, contains("p_")) %>%
+ggplot(aes(x = median, y = p, size = tagsAboveNode, colour = estimator)) +
+  geom_point()+
+  geom_text(aes(label = Node),size = 2, hjust = 2) +
+  geom_abline(intercept = 0, slope = 1, linetype = 2) +
+  theme_bw()
+
+eff_df %>%
+  filter(!(Node %in% c('GRA', 'WR1'))) %>%
+ggplot(aes(x= N_P, y = N_C, size = n_tags)) +
+  geom_point()+
+  geom_text(aes(label = Node),size = 2, hjust = 2) +
+  geom_abline(intercept = 0, slope = 1, linetype = 2) +
+  theme_bw()
+
+write.csv(eff_df, '../Steelhead_eff_2018.csv')
+
+
+
+
+
 # Estimate Escapement with **STADEM** and **DABOM**
 
 load(paste0('STADEM_results/LGR_STADEM_', spp, '_', yr, '.rda'))

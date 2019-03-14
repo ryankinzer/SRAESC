@@ -22,7 +22,7 @@ library(PITcleanr)
 
 timestp <- gsub('[^0-9]','', Sys.Date())
 
-spp = 'Chinook'  # either 'Chinook' or 'Steelhead'
+spp = 'Steelhead'  # either 'Chinook' or 'Steelhead'
 yr = 2018        # tagging operations started in spawn year 2009
 
 #------------------------------------------------------------------------------
@@ -56,6 +56,7 @@ my_config = org_config %>%
                                      'RRT'),
                        'above_SC2',
                        Node),
+         Node = ifelse(SiteID == 'ACB', 'ACB', Node),
          Node = ifelse(SiteID == 'AFC',
                        ifelse(grepl('MAINSTEM', AntennaGroup),
                               'AFCB0',
@@ -335,6 +336,7 @@ my_config = org_config %>%
 # Save customized configuration file as .csv with time stamp.
 #------------------------------------------------------------------------------
 my_config <- my_config %>% filter(Node != 'IML')
+
 write.csv(my_config, file = paste0('./data/ConfigurationFiles/my_config_',timestp,'.csv'),
           row.names = FALSE)
 
@@ -657,9 +659,9 @@ library(tidyverse)
 library(lubridate)
 library(PITcleanr)
 
-spp <- 'Chinook'
+spp <- 'Steelhead'
 yr <- 2018
-timestp <- '20190304' # for file path
+timestp <- '20190305' # for file path
 
 #------------------------------------------------------------------------------
 # Load configuration, parent_child and processed datasets from PITcleanr 
