@@ -40,8 +40,8 @@ model{
 
   JUL_p <- 0 # no detections / not in operation
   HLMA0_p <- 0 # no detections / not in operation
-  HLMB0_p <- 1 # Single array, no upstream detections
-  POTREF_p <- 0 # no detections / not in operation
+  HLMB0_p <- 1 # no detections / not in operation
+  POTREF_p <- 0 # assume perfect detection
   POTRWF_p <- 0 # no detections / not in operation
   KHSA0_p <- 0 # no detections / not in operation
   KHSB0_p <- 0 # no detections / not in operation
@@ -54,14 +54,14 @@ model{
   LC2_p ~ dbeta(1,1)
 
   SC1_p ~ dbeta(1,1)
-  SC2B0_p ~ dbeta(1,1) # Single array, no upstream detections - needs to be variable b/c no transition prob. between SC1 and SC2
-  SC2A0_p <- 0 # no detections / not in operation
+  SC2B0_p ~ dbeta(1,1)
+  SC2A0_p ~ dbeta(1,1)
 
   CLC_p ~ dbeta(1,1)
   KOOS_p <- 0 # no detections / not in operation
 
-  LRL_p ~ dbeta(1,1)
-  FISTRP_p <- 1 # assume perfect detection
+  LRL_p <- 1 #~ dbeta(1,1)
+  FISTRP_p <- 0 # no detections / not in operation
 
   SW1_p <- 1 # assume perfect detection
 
@@ -286,9 +286,9 @@ KRS_p <- 1 # Single array, no upstream detections
   # only have to worry about observation piece
   for ( i in 1:n.fish ) {
 
-    Penawawa[i] ~ dbern(PENAWC_p * catexp[i,2])
-    Almota[i] ~ dbern(ALMOTC_p * catexp[i,3])
-    Alpowa[i] ~ dbern(ALPOWC_p * catexp[i,4])
+    Penawawa[i,1] ~ dbern(PENAWC_p * catexp[i,2])
+    Almota[i,1] ~ dbern(ALMOTC_p * catexp[i,3])
+    Alpowa[i,1] ~ dbern(ALPOWC_p * catexp[i,4])
 
   }
 
@@ -380,7 +380,7 @@ KRS_p <- 1 # Single array, no upstream detections
   # only have to worry about observation piece
   for ( i in 1:n.fish ) {
 
-    TenMileCreek[i] ~ dbern(TENMC2_p * catexp[i,6])
+    TenMileCreek[i,1] ~ dbern(TENMC2_p * catexp[i,6])
 
   }
 
@@ -704,7 +704,7 @@ KRS_p <- 1 # Single array, no upstream detections
     SFClearwater[i,2] ~ dbern( SC2B0_p * catexp[i,13] )
 
     # other arrays (above SC2)
-    SFClearwater[i,3] ~ dbern( SC2A0_p * catexp[i,13] )
+    #SFClearwater[i,3] ~ dbern( SC2A0_p * catexp[i,13] )
 
   }
 
@@ -726,7 +726,7 @@ KRS_p <- 1 # Single array, no upstream detections
   #   Now we deal with Lochsa
   ####################################################
   # probability of moving past FISTRP
-  phi_fistrp ~ dbeta(1,1)
+  phi_fistrp <- 0 # no upstream detections
 
   for (i in 1:n.fish) {
 
@@ -748,7 +748,7 @@ KRS_p <- 1 # Single array, no upstream detections
   for (i in 1:n.fish) {
 
     # first array (SW1)
-    Selway[i] ~ dbern( SW1_p * catexp[i,16] )
+    Selway[i,1] ~ dbern( SW1_p * catexp[i,16] )
 
   }
 
@@ -760,7 +760,7 @@ KRS_p <- 1 # Single array, no upstream detections
   for (i in 1:n.fish) {
 
     # first array (LOOKGC)
-    LookingGlass[i] ~ dbern( LOOKGC_p * catexp[i,17] )
+    LookingGlass[i,1] ~ dbern( LOOKGC_p * catexp[i,17] )
 
   }
 
@@ -852,7 +852,7 @@ KRS_p <- 1 # Single array, no upstream detections
   for (i in 1:n.fish) {
 
     # first array (RAPH)
-    RapidRiver[i] ~ dbern( RAPH_p * catexp[i,20] )
+    RapidRiver[i,1] ~ dbern( RAPH_p * catexp[i,20] )
 
   }
 
@@ -1027,7 +1027,7 @@ KRS_p <- 1 # Single array, no upstream detections
   pMat_UpLemhi[2,(n.pops.Lemhi[2]+1)] <- 0 #set the "not there" bin to prob = 0
 
   # movement up Big Timber Creek
-  phi_btm ~ dbeta(1,1)
+  phi_btm <- 0 # no upstream detections
   phi_btu <- 0 # no upstream detections
 
 
