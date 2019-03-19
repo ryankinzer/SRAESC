@@ -12,14 +12,16 @@ library(magrittr)
 library(forcats)
 library(STADEM)
 
+## Trap database
+# file path to .csv version of LGR trap database - dnload 02/20/2018 (afternoon)
+#trap_filepath = 'data/tblLGDMasterCombineExportJodyW.csv'
+source('./R/loadLGTrappingDBase.R')
+trap_filepath <- './data/LGTrappingExportJodyW.accdb'
+trap_dbase <- loadLGTrappingDBase(trap_filepath)
+
 # set species and spawn year
 species = c('Chinook', 'Steelhead')  # either Chinook or Steelhead
 year = 2018        # tagging operations started at Lower Granite with spawn year 2009.
-
-## Trap database
-# file path to .csv version of LGR trap database - dnload 02/20/2018 (afternoon)
-trap_filepath = 'data/tblLGDMasterCombineExportJodyW.csv'
-#trap_filepath = 'data/LGTrappingExportJodyW.accdb'
 
 # Loop through species and years
 for(i in 1:length(species)){
@@ -47,7 +49,7 @@ stadem_list = compileGRAdata(spp = spp,
                              start_date = start_date, #paste0(yr,'0301'),
                              end_date = end_date, #paste0(yr,'0817'),
                              strata_beg = 'Mon',
-                             trap_path = trap_filepath,
+                             trap_dbase = trap_dbase,
                              incl_jacks = incl_jacks)   # incl_jacks needs to be true for Chinook, b/c window counts from DART are from two seperate columns
 
 # creates JAGs data list.
@@ -69,14 +71,16 @@ win_model = c('pois', 'neg_bin', 'neg_bin2', 'quasi_pois', 'log_space')[2]
 # run model - runSTADEMmodel sets the params to save inside the fnc, and it
 # does not same all the params available in the model!
 stadem_mod = runSTADEMmodel(file_name = model_file_nm,
-                            mcmc_chainLength = 1000, #40000,
-                            mcmc_burn = 100, #10000,
+                            mcmc_chainLength = 40000, #40000,
+                            mcmc_burn = 10000, #10000,
                             mcmc_thin = 30,
                             mcmc_chains = 4,
                             jags_data = jags_data_list,
                             seed = 5,
                             weekly_params = T,
                             win_model = win_model)
+
+#ests <- stadem_mod$summary
 
 # save results
 save(stadem_mod, stadem_list,
