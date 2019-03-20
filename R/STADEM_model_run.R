@@ -80,7 +80,7 @@ stadem_mod = runSTADEMmodel(file_name = model_file_nm,
                             weekly_params = T,
                             win_model = win_model)
 
-#ests <- stadem_mod$summary
+ests <- stadem_mod$summary
 
 # save results
 save(stadem_mod, stadem_list,
@@ -88,3 +88,7 @@ save(stadem_mod, stadem_list,
 
   } # close j loop
 } # close i loop
+
+spp <- 'Steelhead'
+yr <- 2018
+load(paste0('./STADEM_results/LGR_STADEM_', spp, '_', yr, '.rda'))

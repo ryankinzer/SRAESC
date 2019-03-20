@@ -178,7 +178,7 @@ detach('package:jagsUI')
 # to another script but we can leave it here for now!!!
 #------------------------------------------------------------------------------
 
-load(file = paste0('DABOM_results/LGR_DABOM_Bio_', spp, '_', yr, '_20190310.rda'))
+load(file = paste0('DABOM_results/LGR_DABOM_Bio_', spp, '_', yr, '_20190304.rda'))
 
 # Detection Probabilities Directly from `DABOM`, we can extract estimates of
 # the detection probability of the observation nodes. These are average
@@ -202,37 +202,26 @@ parent_child <- read_csv(parentchild_filepath)
 valid_paths <- getValidPaths(parent_child, 'GRA')
 node_order <- createNodeOrder(valid_paths, my_config, site_df, step_num = 3)
 
-KSeff <- estNodeEff(proc_list$proc_ch, node_order, method = 'Chapman')
-pet <- estNodeEff(proc_list$proc_ch, node_order, method = 'Petersen')
-  
-eff_df <- left_join(detect_summ, KSeff, by = 'Node') %>%
-  left_join(pet %>%
-              select(Node, N_P = estTagsAtNode, p_P=detEff), by = 'Node') %>%
-  rename(p_C = detEff, N_C = estTagsAtNode)
+eff <- estNodeEff(proc_list$proc_ch, node_order, method = 'Chapman')
+
+eff_df <- left_join(detect_summ, eff, by = 'Node')
+
 
 eff_df %>%
   filter(Node != 'GRA') %>%
-  select(Node, n_tags, tagsResighted, tagsAboveNode, median, contains("p_")) %>%
-  gather(estimator, p, contains("p_")) %>%
-ggplot(aes(x = median, y = p, size = tagsAboveNode, colour = estimator)) +
+ggplot(aes(x = median, y = detEff, size = tagsAboveNode, size = n_tags)) +
   geom_point()+
   geom_text(aes(label = Node),size = 2, hjust = 2) +
   geom_abline(intercept = 0, slope = 1, linetype = 2) +
   theme_bw()
 
 eff_df %>%
-  filter(!(Node %in% c('GRA', 'WR1'))) %>%
-ggplot(aes(x= N_P, y = N_C, size = n_tags)) +
+  filter(Node != 'GRA') %>%
+ggplot(aes(x= n_tags, y = estTagsAtNode, size = n_tags)) +
   geom_point()+
   geom_text(aes(label = Node),size = 2, hjust = 2) +
   geom_abline(intercept = 0, slope = 1, linetype = 2) +
   theme_bw()
-
-write.csv(eff_df, '../Steelhead_eff_2018.csv')
-
-
-
-
 
 # Estimate Escapement with **STADEM** and **DABOM**
 
